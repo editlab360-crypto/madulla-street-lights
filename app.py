@@ -257,4 +257,15 @@ with tab3:
             border: 2px solid #e0e0e0;
             border-radius: 12px;
             padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background-color: #ffffff;
+            margin-bottom: 25px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    components.iframe(FORM_URL, height=800, scrolling=True)
+    st.markdown('</div>', unsafe_allow_html=True)
