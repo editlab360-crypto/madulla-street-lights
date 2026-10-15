@@ -117,7 +117,7 @@ if complained_ids:
                 df.loc[df[tower_col].astype(str).str.strip() == t_val, "Broken"] = True
     elif "ID" in df.columns:
         for light_id in complained_ids:
-            if light_id not in st.session_state.fixed_towers:
+            if light_id not in st.session_state.fixed_lights:
                 df.loc[df["ID"].astype(str).str.strip() == light_id, "Broken"] = True
 
 df["තත්ත්වය"] = df["Broken"].map({True: "අක්‍රිය", False: "ක්‍රියාත්මක"})
@@ -138,10 +138,19 @@ with st.sidebar:
         st.subheader("🛠️ ලාම්පු තත්ත්වය යාවත්කාලීන කරන්න")
         
         if tower_col:
+            # මෙහිදී ටයිප් කිරීමට සහ තෝරා ගැනීමට (Searchable/Typeable input) පහසුකම ලැබෙයි
             tower_options = [""] + list(df[tower_col].dropna().astype(str).unique())
-            fix_tower = st.selectbox("හදන ලද Tower Number එක තෝරන්න:", options=tower_options)
             
-            if fix_tower and fix_tower != "":
+            # පරිශීලකයාට ටයිප් කරන්න හෝ ඩ්‍රොප්ඩවුන් එකෙන් තෝරාගන්න පුළුවන් ක්‍රමයක්
+            input_method = st.radio("ක්‍රමය තෝරන්න:", ["ලැයිස්තුවෙන් තෝරන්න", "අංකය ටයිප් කරන්න"])
+            
+            fix_tower = ""
+            if input_method == "ලැයිස්තුවෙන් තෝරන්න":
+                fix_tower = st.selectbox("Tower Number එක තෝරන්න:", options=tower_options)
+            else:
+                fix_tower = st.text_input("Tower Number එක ටයිප් කරන්න (ഉදා: 4):")
+            
+            if fix_tower and fix_tower.strip() != "":
                 if st.button("Active (ක්‍රියාත්මකයි) ලෙස සටහන් කරන්න"):
                     st.session_state.fixed_towers.add(fix_tower.strip())
                     st.success(f"Tower No. {fix_tower} සාර්ථකව ක්‍රියාත්මක තත්ත්වයට පත් කරන ලදී!")
