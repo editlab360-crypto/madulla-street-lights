@@ -88,7 +88,20 @@ else:
     df["Lat"] = df["Lon"] = None
 
 df["Broken"] = df.apply(is_broken, axis=1)
-df["තත්ත්වය"] = df["Broken"].map({True: "අක්‍රිය", False: "ක්‍රියාත්මක"})
+
+# මහජන පැමිණිලි ලැබී ඇති ලාම්පු IDs හඳුනා ගැනීම
+complained_ids = set()
+if not df_complaints.empty:
+    # Form එකේ ලාම්පු අංකය ඇතුළත් වන තීරුව සම්මත ලෙස පරීක්ෂා කිරීම (ഉදා: Light_ID හෝ ID)
+    for col in df_complaints.columns:
+        if "id" in col.lower() or "අංක" in col.lower() or "light" in col.lower():
+            complained_ids.update(df_complaints[col].astype(str).str.strip().values)
+
+# පැමිණිල්ලක් ලැබී ඇත්නම්, එය Broken (අක්‍රිය) ලෙස සලකුණු කිරීම
+if complained_ids and "ID" in df.columns:
+    df.loc[df["ID"].astype(str).str.strip().isin(complained_ids), "Broken"] = True
+
+df["තත්ත්වය"] = df["Broken"].map({True: "අක්‍රිය (පැමිණිලි ලැබී ඇත)", False: "ක්‍රියාත්මක"})
 
 total = len(df)
 broken = int(df["Broken"].sum())
@@ -107,7 +120,7 @@ with tab1:
     c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
     c2.metric("ක්‍රියාත්මක ලාම්පු", active)
     c3.metric(
-        "අක්‍රිය ලාම්පු",
+        "අක්‍රිය ලාම්පු / පැමිණිලි",
         broken,
         delta=f"-{broken}" if broken else "0",
         delta_color="inverse",
@@ -129,8 +142,14 @@ with tab1:
         return "-" if pd.isna(v) or str(v).strip() == "" else v
 
     for _, row in valid.iterrows():
-        color = "red" if row["Broken"] else "green"
-        icon = "remove-circle" if row["Broken"] else "ok-sign"
+        light_id = str(row.get("ID", "")).strip()
+        has_complaint = light_id in complained_ids
+        
+        color = "red" if row["Broken"] or has_complaint else "green"
+        icon = "remove-circle" if row["Broken"] or has_complaint else "ok-sign"
+        
+        complaint_tag = "<br><b style='color:red;'>⚠️ මහජන පැමිණිල්ලක් ලැබී ඇත!</b>" if has_complaint else ""
+        
         popup_html = (
             f"<b>ID:</b> {cell(row,'ID')}<br>"
             f"<b>Area:</b> {cell(row,'Area')}<br>"
@@ -142,6 +161,7 @@ with tab1:
             f"<b>Last Maint.:</b> {cell(row,'Last_Maintenance_Date')}<br>"
             f"<b>Remarks:</b> {cell(row,'Remarks')}<br>"
             f"<b>තත්ත්වය:</b> {row['තත්ත්වය']}"
+            f"{complaint_tag}"
         )
         folium.Marker(
             location=[row["Lat"], row["Lon"]],
@@ -188,7 +208,6 @@ with tab3:
     st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
     st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
     
-    # ලස්සන Box එකක් සහ Shadow එකක් ලබා දීමට HTML/CSS කොටසක්
     st.markdown(
         """
         <style>
@@ -205,7 +224,6 @@ with tab3:
         unsafe_allow_html=True
     )
 
-    # හිස් අවකාශයන් නොමැතිව ඍජුවම Box එක ඇතුළේ Form එක පෙන්වීම
     st.markdown('<div class="form-container">', unsafe_allow_html=True)
     components.iframe(
         FORM_URL,
@@ -213,4 +231,3 @@ with tab3:
         scrolling=True
     )
     st.markdown('</div>', unsafe_allow_html=True)
-    
