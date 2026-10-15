@@ -135,111 +135,117 @@ with st.sidebar:
         st.error("වැරදි මුරපදයක් හෝ පරිශීලක නාමයක්!")
 
 
-# ==================== 1. මුලින්ම පෙන්වන කොටස: නව පැමිණිල්ලක් යොමු කිරීම (Form) ====================
-st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
-st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
+# ==================== ප්‍රධාන ටැබස් (Tabs) සැකසුම ====================
+tab1, tab2 = st.tabs([
+    "📝 පැමිණිලි කිරීම, සිතියම හා කළමනාකරණය", 
+    "📋 මහජන පැමිණිලි ලැයිස්තුව"
+])
 
-st.markdown(
-    """
-    <style>
-    .form-container {
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        background-color: #ffffff;
-        margin-bottom: 25px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown('<div class="form-container">', unsafe_allow_html=True)
-components.iframe(FORM_URL, height=800, scrolling=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown("---")
-
-
-# ==================== 2. දෙවනුව පෙන්වන කොටස: සිතියම සහ KPI දර්ශක ====================
-
-# KPI දර්ශක
-c1, c2, c3 = st.columns(3)
-c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
-c2.metric("ක්‍රියාත්මක ලාම්පු", active)
-c3.metric(
-    "අක්‍රිය ලාම්පු / පැමිණිලි",
-    broken,
-    delta=f"-{broken}" if broken else "0",
-    delta_color="inverse",
-)
-
-st.markdown("---")
-st.subheader("📍 වීදි ලාම්පු සිතියම")
-
-valid = df.dropna(subset=["Lat", "Lon"])
-if valid.empty:
-    center = DEFAULT_CENTER
-else:
-    center = (valid["Lat"].mean(), valid["Lon"].mean())
-
-m = folium.Map(location=center, zoom_start=14)
-
-def cell(row, col):
-    v = row.get(col, "")
-    return "-" if pd.isna(v) or str(v).strip() == "" else v
-
-for _, row in valid.iterrows():
-    light_id = str(row.get("ID", "")).strip()
-    has_complaint = light_id in complained_ids and light_id not in st.session_state.fixed_lights
+with tab1:
+    # 1. නව පැමිණිල්ලක් යොමු කිරීමේ පෝරමය (උඩින්ම ඇත)
+    st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
+    st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
     
-    color = "red" if row["Broken"] or has_complaint else "green"
-    icon = "remove-circle" if row["Broken"] or has_complaint else "ok-sign"
-    
-    complaint_tag = "<br><b style='color:red;'>⚠️ මහජන පැමිණිල්ලක් ලැබී ඇත!</b>" if has_complaint else ""
-    
-    popup_html = (
-        f"<b>ID:</b> {cell(row,'ID')}<br>"
-        f"<b>Area:</b> {cell(row,'Area')}<br>"
-        f"<b>E Area:</b> {cell(row,'E Area')}<br>"
-        f"<b>Road:</b> {cell(row,'Road_Name')}<br>"
-        f"<b>Bulb:</b> {cell(row,'Bulb_Type')}<br>"
-        f"<b>Pole:</b> {cell(row,'Pole_Condition')}<br>"
-        f"<b>තත්ත්වය:</b> {row['තත්ත්වය']}"
-        f"{complaint_tag}"
+    st.markdown(
+        """
+        <style>
+        .form-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background-color: #ffffff;
+            margin-bottom: 25px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
     )
-    folium.Marker(
-        location=[row["Lat"], row["Lon"]],
-        popup=folium.Popup(popup_html, max_width=280),
-        tooltip=str(cell(row, "ID")),
-        icon=folium.Icon(color=color, icon=icon, prefix="glyphicon"),
-    ).add_to(m)
 
-st_folium(m, height=520, use_container_width=True, returned_objects=[])
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    components.iframe(FORM_URL, height=800, scrolling=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown("---")
 
-# ==================== 3. තෙවනුව පෙන්වන කොටස: වසම් වගුව සහ පැමිණිලි ලැයිස්තුව ====================
-st.markdown("---")
-st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
-
-group_cols = [c for c in ("E Area", "Area") if c in df.columns]
-if group_cols:
-    summary = (
-        df.groupby(group_cols, dropna=False)
-        .agg(මුළු_ලාම්පු=("Broken", "size"), අක්‍රිය_ලාම්පු=("Broken", "sum"))
-        .reset_index()
+    # 2. KPI දර්ශක
+    c1, c2, c3 = st.columns(3)
+    c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
+    c2.metric("ක්‍රියාත්මක ලාම්පු", active)
+    c3.metric(
+        "අක්‍රිය ලාම්පු / පැමිණිලි",
+        broken,
+        delta=f"-{broken}" if broken else "0",
+        delta_color="inverse",
     )
-    summary["ක්‍රියාත්මක"] = summary["මුළු_ලාම්පු"] - summary["අක්‍රිය_ලාම්පු"]
-    st.dataframe(summary, use_container_width=True, hide_index=True)
 
-st.markdown("---")
-st.subheader("📑 ලැබී ඇති මහජන පැමිණිලි ලැයිස්තුව")
-if not df_complaints.empty:
-    st.metric("මුළු පැමිණිලි සංඛ්‍යාව", len(df_complaints))
-    st.dataframe(df_complaints, use_container_width=True)
-else:
-    st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත.")
+    st.markdown("---")
+    st.subheader("📍 වීදි ලාම්පු සිතියම")
 
-with st.expander("සියලු ලාම්පු දත්ත බලන්න"):
-    st.dataframe(df.drop(columns=["Lat", "Lon", "Broken"]), use_container_width=True)
+    valid = df.dropna(subset=["Lat", "Lon"])
+    if valid.empty:
+        center = DEFAULT_CENTER
+    else:
+        center = (valid["Lat"].mean(), valid["Lon"].mean())
+
+    m = folium.Map(location=center, zoom_start=14)
+
+    def cell(row, col):
+        v = row.get(col, "")
+        return "-" if pd.isna(v) or str(v).strip() == "" else v
+
+    for _, row in valid.iterrows():
+        light_id = str(row.get("ID", "")).strip()
+        has_complaint = light_id in complained_ids and light_id not in st.session_state.fixed_lights
+        
+        color = "red" if row["Broken"] or has_complaint else "green"
+        icon = "remove-circle" if row["Broken"] or has_complaint else "ok-sign"
+        
+        complaint_tag = "<br><b style='color:red;'>⚠️ මහජන පැමිණිල්ලක් ලැබී ඇත!</b>" if has_complaint else ""
+        
+        popup_html = (
+            f"<b>ID:</b> {cell(row,'ID')}<br>"
+            f"<b>Area:</b> {cell(row,'Area')}<br>"
+            f"<b>E Area:</b> {cell(row,'E Area')}<br>"
+            f"<b>Road:</b> {cell(row,'Road_Name')}<br>"
+            f"<b>Bulb:</b> {cell(row,'Bulb_Type')}<br>"
+            f"<b>Pole:</b> {cell(row,'Pole_Condition')}<br>"
+            f"<b>තත්ත්වය:</b> {row['තත්ත්වය']}"
+            f"{complaint_tag}"
+        )
+        folium.Marker(
+            location=[row["Lat"], row["Lon"]],
+            popup=folium.Popup(popup_html, max_width=280),
+            tooltip=str(cell(row, "ID")),
+            icon=folium.Icon(color=color, icon=icon, prefix="glyphicon"),
+        ).add_to(m)
+
+    st_folium(m, height=520, use_container_width=True, returned_objects=None)
+
+    # 3. වසම් වගුව
+    st.markdown("---")
+    st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
+
+    group_cols = [c for c in ("E Area", "Area") if c in df.columns]
+    if group_cols:
+        summary = (
+            df.groupby(group_cols, dropna=False)
+            .agg(මුළු_ලාම්පු=("Broken", "size"), අක්‍රිය_ලාම්පු=("Broken", "sum"))
+            .reset_index()
+        )
+        summary["ක්‍රියාත්මක"] = summary["මුළු_ලාම්පු"] - summary["අක්‍රිය_ලාම්පු"]
+        st.dataframe(summary, use_container_width=True, hide_index=True)
+
+    with st.expander("සියලු ලාම්පු දත්ත බලන්න"):
+        st.dataframe(df.drop(columns=["Lat", "Lon", "Broken"]), use_container_width=True)
+
+with tab2:
+    st.subheader("📑 මහජන පැමිණිලි ලැයිස්තුව")
+    st.markdown("මහජනතාව විසින් ඉදිරිපත් කරන ලද සියලුම පැමිණිලි මෙහි පෙන්වයි.")
+    
+    if not df_complaints.empty:
+        st.metric("මුළු පැමිණිලි සංඛ්‍යාව", len(df_complaints))
+        st.markdown("---")
+        st.dataframe(df_complaints, use_container_width=True)
+    else:
+        st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත හෝ 'COMPLAINTS' ෂීට් එක හිස්ව පවතී.")
