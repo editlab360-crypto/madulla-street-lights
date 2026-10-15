@@ -185,7 +185,6 @@ with tab2:
         st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත හෝ 'COMPLAINTS' ෂීට් එක හිස්ව පවතී.")
 
 with tab3:
-    with tab3:
     st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
     st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
     
@@ -209,8 +208,8 @@ with tab3:
     with st.container():
         st.markdown('<div class="form-container">', unsafe_allow_html=True)
         components.iframe(
-            "https://docs.google.com/forms/d/e/1FAIpQLSe-16vJbXysS0hkdP434Eri_4Lij9DJH0CoCNT0sjUgpmzYGA/viewform?embedded=true",
-            height=850,  # උස වැඩි කර ඇත (Scroll කිරීම අවම කිරීමට)
+            FORM_URL,
+            height=850,
             scrolling=True
         )
         st.markdown('</div>', unsafe_allow_html=True)
