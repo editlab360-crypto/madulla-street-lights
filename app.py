@@ -136,39 +136,14 @@ with st.sidebar:
 
 
 # ==================== ප්‍රධාන ටැබස් (Tabs) සැකසුම ====================
-tab1, tab2 = st.tabs([
-    "📝 පැමිණිලි කිරීම, සිතියම හා කළමනාකරණය", 
-    "📋 මහජන පැමිණිලි ලැයිස්තුව"
+tab1, tab2, tab3 = st.tabs([
+    "🗺️ වීදි ලාම්පු සිතියම හා විස්තර", 
+    "📋 මහජන පැමිණිලි ලැයිස්තුව",
+    "📝 නව පැමිණිල්ලක් යොමු කරන්න"
 ])
 
 with tab1:
-    # 1. නව පැමිණිල්ලක් යොමු කිරීමේ පෝරමය (උඩින්ම ඇත)
-    st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
-    st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
-    
-    st.markdown(
-        """
-        <style>
-        .form-container {
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            background-color: #ffffff;
-            margin-bottom: 25px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.markdown('<div class="form-container">', unsafe_allow_html=True)
-    components.iframe(FORM_URL, height=800, scrolling=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # 2. KPI දර්ශක
+    # 1. KPI දර්ශක
     c1, c2, c3 = st.columns(3)
     c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
     c2.metric("ක්‍රියාත්මක ලාම්පු", active)
@@ -222,7 +197,7 @@ with tab1:
 
     st_folium(m, height=520, use_container_width=True, returned_objects=None)
 
-    # 3. වසම් වගුව
+    # 2. වසම් වගුව
     st.markdown("---")
     st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
 
@@ -249,3 +224,27 @@ with tab2:
         st.dataframe(df_complaints, use_container_width=True)
     else:
         st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත හෝ 'COMPLAINTS' ෂීට් එක හිස්ව පවතී.")
+
+with tab3:
+    st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
+    st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
+    
+    st.markdown(
+        """
+        <style>
+        .form-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background-color: #ffffff;
+            margin-bottom: 25px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    components.iframe(FORM_URL, height=800, scrolling=True)
+    st.markdown('</div>', unsafe_allow_html=True)
