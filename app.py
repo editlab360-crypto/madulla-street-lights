@@ -96,7 +96,7 @@ df["Broken"] = df.apply(is_broken, axis=1)
 if "ID" in df.columns and st.session_state.fixed_lights:
     df.loc[df["ID"].astype(str).str.strip().isin(st.session_state.fixed_lights), "Broken"] = False
 
-# මහජන පැමිණිලි ලැබී ඇති ලාම්පු IDs හඳුනා ගැනීම (Admin fix නොකළ ඒවා පමණක් Broken ලෙස තැබීම)
+# මහජන පැමිණිලි ලැබී ඇති ලාම්පු IDs හඳුනා ගැනීම
 complained_ids = set()
 if not df_complaints.empty:
     for col in df_complaints.columns:
@@ -114,25 +114,10 @@ total = len(df)
 broken = int(df["Broken"].sum())
 active = total - broken
 
-# ==================== ප්‍රධාන පිටුව (උඩ කොටස: සිතියම සහ කළමනාකරණය) ====================
-
-# ---------- KPI ----------
-c1, c2, c3 = st.columns(3)
-c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
-c2.metric("ක්‍රියාත්මක ලාම්පු", active)
-c3.metric(
-    "අක්‍රිය ලාම්පු / පැමිණිලි",
-    broken,
-    delta=f"-{broken}" if broken else "0",
-    delta_color="inverse",
-)
-
-st.markdown("---")
-
-# ---------- Admin Panel (Sidebar එකේ හෝ වෙනම කොටුවක) ----------
+# ---------- Admin Panel (Sidebar) ----------
 with st.sidebar:
     st.subheader("🔐 නිලධාරී පිවිසුම (Admin Login)")
-    admin_user = st.text_input("ഉጠቃුම් නාමය (Username)")
+    admin_user = st.text_input("පරිශීලක නාමය (Username)")
     admin_pass = st.text_input("මුරපදය (Password)", type="password")
     
     if admin_user == "admin" and admin_pass == "admin123":
@@ -149,7 +134,48 @@ with st.sidebar:
     elif admin_pass != "":
         st.error("වැරදි මුරපදයක් හෝ පරිශීලක නාමයක්!")
 
-# ---------- සිතියම ----------
+
+# ==================== 1. මුලින්ම පෙන්වන කොටස: නව පැමිණිල්ලක් යොමු කිරීම (Form) ====================
+st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
+st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
+
+st.markdown(
+    """
+    <style>
+    .form-container {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        background-color: #ffffff;
+        margin-bottom: 25px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown('<div class="form-container">', unsafe_allow_html=True)
+components.iframe(FORM_URL, height=800, scrolling=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown("---")
+
+
+# ==================== 2. දෙවනුව පෙන්වන කොටස: සිතියම සහ KPI දර්ශක ====================
+
+# KPI දර්ශක
+c1, c2, c3 = st.columns(3)
+c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
+c2.metric("ක්‍රියාත්මක ලාම්පු", active)
+c3.metric(
+    "අක්‍රිය ලාම්පු / පැමිණිලි",
+    broken,
+    delta=f"-{broken}" if broken else "0",
+    delta_color="inverse",
+)
+
+st.markdown("---")
 st.subheader("📍 වීදි ලාම්පු සිතියම")
 
 valid = df.dropna(subset=["Lat", "Lon"])
@@ -192,7 +218,8 @@ for _, row in valid.iterrows():
 
 st_folium(m, height=520, use_container_width=True, returned_objects=[])
 
-# ---------- වසම් වගුව ----------
+
+# ==================== 3. තෙවනුව පෙන්වන කොටස: වසම් වගුව සහ පැමිණිලි ලැයිස්තුව ====================
 st.markdown("---")
 st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
 
@@ -206,43 +233,13 @@ if group_cols:
     summary["ක්‍රියාත්මක"] = summary["මුළු_ලාම්පු"] - summary["අක්‍රිය_ලාම්පු"]
     st.dataframe(summary, use_container_width=True, hide_index=True)
 
-with st.expander("සියලු දත්ත බලන්න"):
-    st.dataframe(df.drop(columns=["Lat", "Lon", "Broken"]), use_container_width=True)
-
-
-# ==================== පිටුවේ යට කොටස (മහජන පැමිණිලි සහ පෝරමය) ====================
 st.markdown("---")
-st.header("📋 මහජන පැමිණිලි හා වාර්තා කිරීමේ අංශය")
+st.subheader("📑 ලැබී ඇති මහජන පැමිණිලි ලැයිස්තුව")
+if not df_complaints.empty:
+    st.metric("මුළු පැමිණිලි සංඛ්‍යාව", len(df_complaints))
+    st.dataframe(df_complaints, use_container_width=True)
+else:
+    st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත.")
 
-col_p1, col_p2 = st.columns(2)
-
-with col_p1:
-    st.subheader("📑 ලැබී ඇති පැමිණිලි ලැයිස්තුව")
-    if not df_complaints.empty:
-        st.metric("මුළු පැමිණිලි සංඛ්‍යාව", len(df_complaints))
-        st.dataframe(df_complaints, use_container_width=True)
-    else:
-        st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත.")
-
-with col_p2:
-    st.subheader("📝 නව පැමිණිල්ලක් යොමු කරන්න")
-    st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව මෙහි සටහන් කරන්න.")
-    
-    st.markdown(
-        """
-        <style>
-        .form-container {
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            background-color: #ffffff;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.markdown('<div class="form-container">', unsafe_allow_html=True)
-    components.iframe(FORM_URL, height=750, scrolling=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+with st.expander("සියලු ලාම්පු දත්ත බලන්න"):
+    st.dataframe(df.drop(columns=["Lat", "Lon", "Broken"]), use_container_width=True)
