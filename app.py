@@ -37,7 +37,7 @@ def load_light_data() -> pd.DataFrame:
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        st.error(f"LIGHT දත්ත ලබාගීමේ දෝෂයක්: {e}")
+        st.error(f"LIGHT දත්ත ලබාගැනීමේ දෝෂයක්: {e}")
         return pd.DataFrame()
 
 
@@ -139,133 +139,16 @@ with st.sidebar:
         
         if tower_col:
             tower_options = [""] + list(df[tower_col].dropna().astype(str).unique())
-            fix_tower = st.selectbox("හදන ලද Tower Number එක තෝරන්න:", options=tower_options)
+            fix_tower = st.selectbox("Tower Number එක තෝරන්න / ටයිප් කරන්න:", options=tower_options)
             
-            if fix_tower and fix_tower != "":
-                if st.button("Active (ක්‍රියාත්මකයි) ලෙස සටහන් කරන්න"):
-                    st.session_state.fixed_towers.add(fix_tower.strip())
-                    st.success(f"Tower No. {fix_tower} සාර්ථකව ක්‍රියාත්මක තත්ත්වයට පත් කරන ලදී!")
-                    st.rerun()
-        else:
-            st.error("Google Sheet එකේ 'Tower Number' තීරුව හමු නොවීය.")
-            
-    elif admin_pass != "":
-        st.error("වැරදි මුරපදයක් හෝ පරිශීලක නාමයක්!")
-
-
-# ==================== ප්‍රධාන ටැබස් (Tabs) සැකසුම ====================
-tab1, tab2, tab3 = st.tabs([
-    "🗺️ වීදි ලාම්පු සිතියම හා විස්තර", 
-    "📋 මහජන පැමිණිලි ලැයිස්තුව",
-    "📝 නව පැමිණිල්ලක් යොමු කරන්න"
-])
-
-with tab1:
-    # 1. KPI දර්ශක
-    c1, c2, c3 = st.columns(3)
-    c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
-    c2.metric("ක්‍රියාත්මක ලාම්පු", active)
-    c3.metric(
-        "අක්‍රිය ලාම්පු / පැමිණිලි",
-        broken,
-        delta=f"-{broken}" if broken else "0",
-        delta_color="inverse",
-    )
-
-    st.markdown("---")
-    st.subheader("📍 වීදි ලාම්පු සිතියම")
-
-    valid = df.dropna(subset=["Lat", "Lon"])
-    if valid.empty:
-        center = DEFAULT_CENTER
-    else:
-        center = (valid["Lat"].mean(), valid["Lon"].mean())
-
-    m = folium.Map(location=center, zoom_start=14)
-
-    def cell(row, col):
-        v = row.get(col, "")
-        return "-" if pd.isna(v) or str(v).strip() == "" else v
-
-    for _, row in valid.iterrows():
-        t_val = str(row.get(tower_col, "")).strip() if tower_col else ""
-        light_id = str(row.get("ID", "")).strip()
-        
-        has_complaint = (t_val in complained_ids or light_id in complained_ids) and (t_val not in st.session_state.fixed_towers)
-        
-        color = "red" if row["Broken"] or has_complaint else "green"
-        icon = "remove-circle" if row["Broken"] or has_complaint else "ok-sign"
-        
-        complaint_tag = "<br><b style='color:red;'>⚠️ මහජන පැමිණිල්ලක් ලැබී ඇත!</b>" if has_complaint else ""
-        
-        popup_html = (
-            f"<b>ID:</b> {cell(row,'ID')}<br>"
-            f"<b>Tower No:</b> {cell(row, tower_col) if tower_col else '-'}<br>"
-            f"<b>Area:</b> {cell(row,'Area')}<br>"
-            f"<b>E Area:</b> {cell(row,'E Area')}<br>"
-            f"<b>Road:</b> {cell(row,'Road_Name')}<br>"
-            f"<b>Bulb:</b> {cell(row,'Bulb_Type')}<br>"
-            f"<b>Pole:</b> {cell(row,'Pole_Condition')}<br>"
-            f"<b>තත්ත්වය:</b> {row['තත්ත්වය']}"
-            f"{complaint_tag}"
-        )
-        folium.Marker(
-            location=[row["Lat"], row["Lon"]],
-            popup=folium.Popup(popup_html, max_width=280),
-            tooltip=str(cell(row, tower_col if tower_col else 'ID')),
-            icon=folium.Icon(color=color, icon=icon, prefix="glyphicon"),
-        ).add_to(m)
-
-    st_folium(m, height=520, use_container_width=True, returned_objects=None)
-
-    # 2. වසම් වගුව
-    st.markdown("---")
-    st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
-
-    group_cols = [c for c in ("E Area", "Area") if c in df.columns]
-    if group_cols:
-        summary = (
-            df.groupby(group_cols, dropna=False)
-            .agg(මුළු_ලාම්පු=("Broken", "size"), අක්‍රිය_ලාම්පු=("Broken", "sum"))
-            .reset_index()
-        )
-        summary["ක්‍රියාත්මක"] = summary["මුළු_ලාම්පු"] - summary["අක්‍රිය_ලාම්පු"]
-        st.dataframe(summary, use_container_width=True, hide_index=True)
-
-    with st.expander("සියලු ලාම්පු දත්ත බලන්න"):
-        st.dataframe(df.drop(columns=["Lat", "Lon", "Broken"]), use_container_width=True)
-
-with tab2:
-    st.subheader("📑 මහජන පැමිණිලි ලැයිස්තුව")
-    st.markdown("මහජනතාව විසින් ඉදිරිපත් කරන ලද සියලුම පැමිණිලි මෙහි පෙන්වයි.")
-    
-    if not df_complaints.empty:
-        st.metric("මුළු පැමිණිලි සංඛ්‍යාව", len(df_complaints))
-        st.markdown("---")
-        st.dataframe(df_complaints, use_container_width=True)
-    else:
-        st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත හෝ 'COMPLAINTS' ෂීට් එක හිස්ව පවතී.")
-
-with tab3:
-    st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
-    st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
-    
-    st.markdown(
-        """
-        <style>
-        .form-container {
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            background-color: #ffffff;
-            margin-bottom: 25px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.markdown('<div class="form-container">', unsafe_allow_html=True)
-    components.iframe(FORM_URL, height=800, scrolling=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+            if fix_tower and fix_tower.strip() != "":
+                col_b1, col_b2 = st.columns(2)
+                with col_b1:
+                    if st.button("🟢 Active", use_container_width=True):
+                        st.session_state.fixed_towers.add(fix_tower.strip())
+                        st.success(f"Tower No. {fix_tower} Active කරන ලදී!")
+                        st.rerun()
+                with col_b2:
+                    if st.button("🔴 Deactive", use_container_width=True):
+                        st.session_state.fixed_towers.discard(fix_tower.strip())
+                        st.warning(f"Tower No. {fix_
