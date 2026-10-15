@@ -22,8 +22,7 @@ CSV_URL = (
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfl0fJ0_8h2LLw_hs_8DvVWLyhQwqsbVBMLDNCYQINsIXlejQ/viewform?embedded=true"
 
 DEFAULT_CENTER = (6.9136, 81.3455)
-BROKEN_PATTERN = "Broken|Inactive|අක්‍රිය|කැඩි|Not Working"
-
+BROKEN_PATTERN = "Broken|Inactive|අක්‍රිය|කැඩි|Not Working|වැඩ නැත|වැඩ නොකරයි|අබලන්"
 
 @st.cache_data(ttl=60)
 def load_data() -> pd.DataFrame:
