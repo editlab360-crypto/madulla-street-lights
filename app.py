@@ -198,18 +198,19 @@ with tab3:
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             background-color: #ffffff;
+            margin-top: 10px;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    # Box එක ඇතුළේ Form එක පෙන්වීම
-    with st.container():
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
-        components.iframe(
-            FORM_URL,
-            height=850,
-            scrolling=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+    # හිස් අවකාශයන් නොමැතිව ඍජුවම Box එක ඇතුළේ Form එක පෙන්වීම
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    components.iframe(
+        FORM_URL,
+        height=850,
+        scrolling=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
