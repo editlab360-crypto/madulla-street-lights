@@ -5,160 +5,136 @@ import streamlit.components.v1 as components
 from streamlit_folium import st_folium
 
 st.set_page_config(
-    page_title="මඩුල්ල ප්‍රාදේශීය සභා වීදි ලාම්පු ඩෑෂ්බෝඩ් එක",
+    page_title="මඩුල්ල ප්‍රදේශීය සභා වීදි ලාම්පු ඩෑෂ්බෝඩ් එක",
     page_icon="💡",
     layout="wide",
 )
 
-# ---------- සැකසුම් ----------
-SHEET_ID = "1O5w1W6dfLT8muHhU-MBpZbIntNzT78j9jbS9CC-Bz7g"
-SHEET_NAME = "LIGHT"
-CSV_URL = (
-    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
-    f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
-)
+# ----------- සැකසුම් -----------
+SHEET_ID = "105w1W6dFLT8muHuU-MBpZbIntNzT78j9jbS9CC-Bz7g"
+LIGHT_SHEET = "LIGHT"
+COMPLAINTS_SHEET = "COMPLAINTS"
 
-# Google Form link එක මෙතැනට දා ඇත
-FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfl0fJ0_8h2LLw_hs_8DvVWLyhQwqsbVBMLDNCYQINsIXlejQ/viewform?embedded=true"
+CSV_URL_LIGHT = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={LIGHT_SHEET}"
+CSV_URL_COMPLAINTS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={COMPLAINTS_SHEET}"
+
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf10fJ0_8h2Llw_hS_8DvWWLyhQwqsbVMLDNCYQINSiXlejQ/viewform?embedded=true"
 
 DEFAULT_CENTER = (6.9136, 81.3455)
 BROKEN_PATTERN = "Broken|Inactive|අක්‍රිය|කැඩි|Not Working|වැඩ නැත|වැඩ නොකරයි|අබලන්"
 
+
 @st.cache_data(ttl=60)
-def load_data() -> pd.DataFrame:
+def load_light_data():
     try:
-        df = pd.read_csv(CSV_URL)
+        df = pd.read_csv(CSV_URL_LIGHT)
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        st.error(
-            f"දත්ත ලබාගැනීමේ දෝෂයක්: {e}. Google Sheet එක 'Anyone with the link"
-            " can view' ලෙස share කර ඇත්දැයි බලන්න."
-        )
+        st.error(f"LIGHT දත්ත කියවීමේ දෝෂයක්: {e}")
         return pd.DataFrame()
 
 
-def parse_gps(value):
+@st.cache_data(ttl=60)
+def load_complaints_data():
     try:
-        lat, lon = str(value).split(",")
-        lat, lon = float(lat.strip()), float(lon.strip())
-        if -90 <= lat <= 90 and -180 <= lon <= 180:
-            return lat, lon
-    except (ValueError, AttributeError):
+        df = pd.read_csv(CSV_URL_COMPLAINTS)
+        df.columns = df.columns.str.strip()
+        return df
+    except Exception as e:
+        return pd.DataFrame()
+
+
+def parse_gps(val):
+    if pd.isna(val):
+        return None
+    try:
+        parts = str(val).split(",")
+        if len(parts) == 2:
+            return float(parts[0].strip()), float(parts[1].strip())
+    except Exception:
         pass
-    return None, None
+    return None
 
 
 def is_broken(row) -> bool:
-    text = " ".join(
-        str(row.get(c, "")) for c in ("Status", "Remarks", "Pole_Condition")
-    )
+    text = " ".join(str(row.get(c, "")) for c in ["Status", "Remarks", "Pole_Condition"])
     return pd.Series([text]).str.contains(BROKEN_PATTERN, case=False, regex=True).iloc[0]
 
 
-df = load_data()
+df_light = load_light_data()
+df_complaints = load_complaints_data()
 
-st.title("💡 මඩුල්ල ප්‍රාදේශීය සභා - වීදි ලාම්පු කළමනාකරණ පද්ධතිය")
+st.title("💡 මඩුල්ල ප්‍රදේශීය සභාව - වීදි ලාම්පු හා පැමිණිලි පද්ධතිය")
 
-if df.empty:
-    st.warning("දත්ත හමු නොවීය. Google Sheet එක සහ sheet නම පරීක්ෂා කරන්න.")
-    st.stop()
+tab1, tab2, tab3 = st.tabs(["🗺️ වීදි ලාම්පු සිතියම හා තත්ත්වය", "📋 මහජන පැමිණිලි", "📝 නව පැමිණිල්ලක් යොමු කරන්න"])
 
-# ---------- දත්ත සකස් කිරීම ----------
-if "GPS_Location" in df.columns:
-    coords = df["GPS_Location"].apply(parse_gps)
-    df["Lat"] = coords.apply(lambda c: c[0])
-    df["Lon"] = coords.apply(lambda c: c[1])
-else:
-    df["Lat"] = df["Lon"] = None
-    st.warning("'GPS_Location' තීරුව Sheet එකේ නැහැ.")
+with tab1:
+    if not df_light.empty:
+        df_light["Broken"] = df_light.apply(is_broken, axis=1)
+        total_lights = len(df_light)
+        broken_lights = int(df_light["Broken"].sum())
+        active_lights = total_lights - broken_lights
 
-df["Broken"] = df.apply(is_broken, axis=1)
-df["තත්ත්වය"] = df["Broken"].map({True: "අක්‍රිය", False: "ක්‍රියාත්මක"})
+        col1, col2, col3 = st.columns(3)
+        col1.metric("මුළු ලාම්පු සංඛ්‍යාව", total_lights)
+        col2.metric("ක්‍රියාත්මක ලාම්පු", active_lights)
+        col3.metric("අක්‍රිය ලාම්පු (වැඩ නොකරන)", broken_lights)
 
-total = len(df)
-broken = int(df["Broken"].sum())
-active = total - broken
+        st.markdown("---")
+        st.subheader("📍 වීදි ලාම්පු සිතියම")
 
-# ---------- KPI ----------
-c1, c2, c3 = st.columns(3)
-c1.metric("මුළු ලාම්පු ප්‍රමාණය", total)
-c2.metric("ක්‍රියාත්මක ලාම්පු", active)
-c3.metric(
-    "අක්‍රිය ලාම්පු",
-    broken,
-    delta=f"-{broken}" if broken else "0",
-    delta_color="inverse",
-)
+        m = folium.Map(location=DEFAULT_CENTER, zoom_start=13)
 
-st.markdown("---")
+        for _, row in df_light.iterrows():
+            coords = parse_gps(row.get("GPS_Location"))
+            if coords:
+                broken = row["Broken"]
+                color = "red" if broken else "green"
+                status_text = "අක්‍රියයි (වැඩ නැත)" if broken else "ක්‍රියාත්මකයි"
 
-# ---------- සිතියම + Form ----------
-map_col, form_col = st.columns([2, 1])
+                popup_html = f"""
+                <b>ID:</b> {row.get('ID', 'N/A')}<br>
+                <b>වසම:</b> {row.get('Area', 'N/A')}<br>
+                <b>පාර:</b> {row.get('Road_Name', 'N/A')}<br>
+                <b>තත්ත්වය:</b> {status_text}<br>
+                <b>සටහන්:</b> {row.get('Remarks', '-')}<br>
+                """
+                folium.CircleMarker(
+                    location=coords,
+                    radius=6,
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.8,
+                    popup=folium.Popup(popup_html, max_width=250),
+                ).add_to(m)
 
-with map_col:
-    st.subheader("📍 වීදි ලාම්පු සිතියම")
+        st_folium(m, width=1200, height=500)
 
-    valid = df.dropna(subset=["Lat", "Lon"])
-    if valid.empty:
-        center = DEFAULT_CENTER
+        st.markdown("---")
+        st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
+        if "E Area " in df_light.columns or "Area" in df_light.columns:
+            area_col = "Area" if "Area" in df_light.columns else "E Area "
+            summary = df_light.groupby(area_col).agg(
+                මුළු_ලාම්පු=("Broken", "size"),
+                අක්‍රිය_ලාම්පු=("Broken", "sum")
+            ).reset_index()
+            summary["ක්‍රියාත්මක"] = summary["මුළු_ලාම්පු"] - summary["අක්‍රිය_ලාම්පු"]
+            st.dataframe(summary, use_container_width=True)
     else:
-        center = (valid["Lat"].mean(), valid["Lon"].mean())
+        st.warning("වීදි ලාම්පු දත්ත ලබා ගැනීමට නොහැකි විය.")
 
-    m = folium.Map(location=center, zoom_start=14)
+with tab2:
+    st.subheader("📑 මහජන පැමිණිලි ලැයිස්තුව")
+    if not df_complaints.empty:
+        col_c1, col_c2 = st.columns(2)
+        col_c1.metric("මුළු පැමිණිලි ගණන", len(df_complaints))
+        
+        st.dataframe(df_complaints, use_container_width=True)
+    else:
+        st.info("තවම මහජන පැමිණිලි ඇතුළත් වී නොමැත හෝ COMPLAINTS sheet එක හිස්ව පවතී.")
 
-    def cell(row, col):
-        v = row.get(col, "")
-        return "-" if pd.isna(v) or str(v).strip() == "" else v
-
-    for _, row in valid.iterrows():
-        color = "red" if row["Broken"] else "green"
-        icon = "remove-circle" if row["Broken"] else "ok-sign"
-        popup_html = (
-            f"<b>ID:</b> {cell(row,'ID')}<br>"
-            f"<b>Area:</b> {cell(row,'Area')}<br>"
-            f"<b>E Area:</b> {cell(row,'E Area')}<br>"
-            f"<b>Road:</b> {cell(row,'Road_Name')}<br>"
-            f"<b>Bulb:</b> {cell(row,'Bulb_Type')}<br>"
-            f"<b>Pole:</b> {cell(row,'Pole_Condition')}<br>"
-            f"<b>Tower No:</b> {cell(row,'Tower Number')}<br>"
-            f"<b>Last Maint.:</b> {cell(row,'Last_Maintenance_Date')}<br>"
-            f"<b>Remarks:</b> {cell(row,'Remarks')}<br>"
-            f"<b>තත්ත්වය:</b> {row['තත්ත්වය']}"
-        )
-        folium.Marker(
-            [row["Lat"], row["Lon"]],
-            popup=folium.Popup(popup_html, max_width=280),
-            tooltip=str(cell(row, "ID")),
-            icon=folium.Icon(color=color, icon=icon, prefix="glyphicon"),
-        ).add_to(m)
-
-    st_folium(m, height=520, use_container_width=True, returned_objects=[])
-
-    missing = total - len(valid)
-    if missing:
-        st.caption(f"⚠️ GPS දත්ත නොමැති හෝ වැරදි ලාම්පු {missing}ක් සිතියමේ නොපෙන්වයි.")
-
-with form_col:
-    st.subheader("🛠️ අක්‍රිය ලාම්පු පැමිණිලි")
-    st.caption("ලාම්පුවේ ID එක ඇතුලත් කර පැමිණිලි කරන්න.")
-    components.iframe(FORM_URL, height=600, scrolling=True)
-
-# ---------- වසම් වගුව ----------
-st.markdown("---")
-st.subheader("📊 වසම් අනුව ලාම්පු තත්ත්වය")
-
-group_cols = [c for c in ("E Area", "Area") if c in df.columns]
-if group_cols:
-    summary = (
-        df.groupby(group_cols, dropna=False)
-        .agg(මුළු_ලාම්පු=("Broken", "size"), අක්‍රිය_ලාම්පු=("Broken", "sum"))
-        .reset_index()
-    )
-    summary["ක්‍රියාත්මක"] = summary["මුළු_ලාම්පු"] - summary["අක්‍රිය_ලාම්පු"]
-    st.dataframe(summary, use_container_width=True, hide_index=True)
-else:
-    st.info("'Area' / 'E Area' තීරු හමු නොවීය.")
-
-with st.expander("සියලු දත්ත බලන්න"):
-    st.dataframe(df.drop(columns=["Lat", "Lon", "Broken"]), use_container_width=True)
+with tab3:
+    st.subheader("📝 අලුත් පැමිණිල්ලක් සටහන් කරන්න")
+    components.iframe(FORM_URL, height=700, scrolling=True)
