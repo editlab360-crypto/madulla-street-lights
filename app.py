@@ -25,7 +25,7 @@ CSV_URL_COMPLAINTS = (
 )
 
 # Google Form link එක
-FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfl0fJ0_8h2LLw_hs_8DvVWLyhQwqsbVBMLDNCYQINsIXlejQ/viewform?embedded=true"
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe-16vJbXysS0hkdP434Eri_4Lij9DJH0CoCNT0sjUgpmzYGA/viewform?embedded=true"
 
 DEFAULT_CENTER = (6.9136, 81.3455)
 BROKEN_PATTERN = "Broken|Inactive|අක්‍රිය|කැඩි|Not Working|වැඩ නැත|වැඩ නොකරයි|අබලන්"
