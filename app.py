@@ -185,6 +185,32 @@ with tab2:
         st.info("තවම මහජන පැමිණිලි කිසිවක් ලැබී නැත හෝ 'COMPLAINTS' ෂීට් එක හිස්ව පවතී.")
 
 with tab3:
-    st.subheader("📝 අලුත් පැමිණිල්ලක් සටහන් කරන්න")
-    st.caption("පහත පෝරමය හරහා ඔබගේ පැමිණිලි ඉදිරිපත් කළ හැක.")
-    components.iframe(FORM_URL, height=650, scrolling=True)
+    with tab3:
+    st.subheader("📝 අලුත් පැමිණිල්ලක් යොමු කරන්න")
+    st.markdown("අක්‍රිය වී ඇති වීදි ලාම්පු පිළිබඳව ප්‍රදේශීය සභාවට පහසුවෙන් දන්වන්න.")
+    
+    # ලස්සන Box එකක් සහ Shadow එකක් ලබා දීමට HTML/CSS කොටසක්
+    st.markdown(
+        """
+        <style>
+        .form-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background-color: #ffffff;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Box එක ඇතුළේ Form එක පෙන්වීම
+    with st.container():
+        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        components.iframe(
+            "https://docs.google.com/forms/d/e/1FAIpQLSe-16vJbXysS0hkdP434Eri_4Lij9DJH0CoCNT0sjUgpmzYGA/viewform?embedded=true",
+            height=850,  # උස වැඩි කර ඇත (Scroll කිරීම අවම කිරීමට)
+            scrolling=True
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
